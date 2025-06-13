@@ -3,7 +3,7 @@
 > [!TIP]
 > This lab implements the following use case :
 > >
-> ![image](https://github.com/user-attachments/assets/c5ca77fc-b93e-492e-8ecc-2f7c7eaba0e0)
+> ![image](https://github.com/user-attachments/assets/91ebb17c-efe2-4093-ae8d-4af7b894e8e0)
 > >
 > Considerations :
 > > * The producer and the consumer are implemented in the same project with pragmatic aims
