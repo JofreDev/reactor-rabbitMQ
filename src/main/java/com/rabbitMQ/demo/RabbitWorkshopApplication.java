@@ -1,5 +1,6 @@
 package com.rabbitMQ.demo;
 
+import com.rabbitmq.client.AMQP;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
@@ -14,6 +15,8 @@ import reactor.rabbitmq.Receiver;
 import reactor.rabbitmq.Sender;
 
 import java.time.Duration;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.logging.Level;
 
 
@@ -53,7 +56,11 @@ public class RabbitWorkshopApplication implements CommandLineRunner {
 				Flux.range(1, messageCount)
 						.map(i -> new OutboundMessage(
 								"",
-								QUEUE, ("Message - " + i).getBytes()
+								QUEUE,
+								new AMQP.BasicProperties.Builder()
+										.correlationId(UUID.randomUUID().toString())
+										.build(),
+								("Message - " + i).getBytes()
 						)).delayElements(Duration.ofSeconds(1));
 
 
@@ -65,12 +72,16 @@ public class RabbitWorkshopApplication implements CommandLineRunner {
 	*/
 		sender.declareQueue(QueueSpecification.queue(QUEUE))
 				.thenMany(sender.sendWithPublishConfirms(outboundFlux))
-				.doOnNext(val-> log.info("msg sent - "+val.isAck()))
+				.filter(m -> Optional.ofNullable(m.getOutboundMessage().getProperties())
+							.map(AMQP.BasicProperties::getCorrelationId).isPresent()
+				).doOnNext(val-> log.info("msg sent - correlationId : "
+						+val.getOutboundMessage().getProperties().getCorrelationId()))
 				.doOnError(e -> log.log(Level.SEVERE, "Send failed", e))
 				.subscribe();
 
 		disposable = receiver.consumeNoAck("demo-queue")
-				.doOnNext(m -> log.info("Received message "+ new String(m.getBody())))
+				.doOnNext(m -> log.info("Received message "
+						+ new String(m.getBody()) + " with correlationId "+ m.getProperties().getCorrelationId()))
 				.subscribe();
 
 
